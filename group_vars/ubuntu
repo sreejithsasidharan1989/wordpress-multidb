@@ -1,6 +1,7 @@
 ---
 httpd_owner: "www-data"
 httpd_group: "www-data"
+httpd_port: "80"
 httpd_domain: "wordpress.backtracker.tech"
 mariadb_root_passwd: "rootpass123"
 mariadb_wp_user: "wp_user"

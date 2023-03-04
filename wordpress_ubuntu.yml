@@ -11,6 +11,8 @@
     update_cache: true
     name: 
       - nginx
+      - mariadb-server
+      - python3-pymysql
       - php8.0-fpm
       - php8.0-mysql
       - php8.0-mbstring
@@ -94,6 +96,64 @@
   tags:
     - lemp
     - wordpress
+- name: "Ubuntu - Enable & Start Mariadb Service"
+  service:
+    name: mariadb
+    state: started
+    enabled: true
+  tags:
+    - lemp
+    - mariadb
+ 
+- name: "Ubuntu - Update Mariadb Root Password"
+  ignore_errors: true
+  mysql_user:
+    login_unix_socket: /var/run/mysqld/mysqld.sock
+    login_user: "root"
+    login_password: ""
+    name: "root"
+    password: "{{ mariadb_root_passwd }}"
+    host_all: true
+  tags:
+    - lemp
+    - mariadb
+ 
+- name: "Ubuntu - Remove Mariadb Anonymous Users"
+  mysql_user:
+    login_unix_socket: /var/run/mysqld/mysqld.sock
+    login_user: "root"
+    login_password: "{{ mariadb_root_passwd }}"
+    name: ""
+    password: ""
+    host_all: true
+    state: absent
+  tags:
+    - lemp
+    - mariadb
+ 
+- name: "Ubuntu - Create Mariadb Database {{ mariadb_wp_db }}"
+  mysql_db:
+    login_unix_socket: /var/run/mysqld/mysqld.sock
+    login_user: "root"
+    login_password: "{{ mariadb_root_passwd }}"
+    name: "{{ mariadb_wp_db }}"
+    state: present
+  tags:
+    - lemp
+    - mariadb
+ 
+- name: "Ubuntu - Create Mariadb User {{ mariadb_wp_user }}"
+  mysql_user:
+    login_user: "root"
+    login_password: "{{ mariadb_root_passwd }}"
+    name: "{{ mariadb_wp_user }}"
+    password: "{{ mariadb_wp_passwd }}"
+    state: present
+    host: "%"
+    priv: "{{ mariadb_wp_db }}.*:ALL"
+  tags:
+    - lemp
+    - mariadb
  
 - name: "Ubuntu - Post WordPress Installation Service Restarts"
   service:

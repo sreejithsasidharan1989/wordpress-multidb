@@ -2,7 +2,7 @@ server {
         listen {{ httpd_port }};
         listen [::]:{{ httpd_port }};
 	server_name {{ httpd_domain }};
-	root /var/www/(( httpd_domain ))/;
+	root /var/www/{{ httpd_domain }}/;
 	index index.php;
  
 	location / {
