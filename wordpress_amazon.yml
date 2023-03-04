@@ -1,0 +1,92 @@
+---
+- name: "AmazonLinux - Install Packages"
+  yum:
+    name: 
+      - httpd
+    state: present
+  tags:
+    - lamp
+ 
+- name: "AmazonLinux - Install PHP7.4 Packages"
+  shell: amazon-linux-extras install php7.4 -y
+  tags:
+    - lamp
+ 
+- name: "AmazonLinux - Build Apache httpd.conf from httpd.conf.j2 Template"
+  template:
+    src: ./httpd.conf.j2
+    dest: /etc/httpd/conf/httpd.conf
+  tags:
+    - lamp
+ 
+- name: "AmazonLinux - Build Apache VirtualHost from virtualhost.conf.j2"
+  template:
+    src: "./virtualhost.conf.j2"
+    dest: "/etc/httpd/conf.d/{{ httpd_domain }}.conf"
+    owner: "{{ httpd_owner }}"
+    group: "{{ httpd_group }}"
+  tags:
+    - lamp
+ 
+- name: "AmazonLinux - Create Apache Docuemnt Root for /var/www/html/{{ httpd_domain }}"
+  file:
+    path: "/var/www/html/{{ httpd_domain }}"
+    state: directory
+    owner: "{{ httpd_owner }}"
+    group: "{{ httpd_group }}"
+  tags:
+    - lamp
+ 
+- name: "AmazonLinux - Download WordPress Setup Files from {{ wp_url }}"
+  get_url:
+    url: "{{ wp_url }}"
+    dest: "/tmp/wordpress.zip"
+  tags:
+    - wordpress
+ 
+- name: "AmazonLinux - Extract WordPress Setup Files to /tmp"
+  unarchive:
+    src: "/tmp/wordpress.zip"
+    dest: "/tmp"
+    remote_src: true
+  tags:
+    - wordpress
+ 
+- name: "AmazonLinux - Copy WordPress Files to /var/www/html/{{ httpd_domain }}"
+  copy:
+    src: "/tmp/wordpress/"
+    dest: "/var/www/html/{{ httpd_domain }}"
+    remote_src: true
+    owner: "{{ httpd_owner }}"
+    group: "{{ httpd_group }}"
+  tags:
+    - wordpress
+ 
+- name: "AmazonLinux - Build WordPress wp-config.php from wp-config.php.j2"
+  template:
+    src: "./wp-config.php.j2"
+    dest: "/var/www/html/{{ httpd_domain }}/wp-config.php"
+    owner: "{{ httpd_owner }}"
+    group: "{{ httpd_group }}"
+  tags:
+    - wordpress
+ 
+- name: "AmazonLinux - Post WordPress Installation Service Restart"
+  service:
+    name: "{{ item }}"
+    state: restarted
+    enabled: true
+  with_items:
+    - httpd
+  tags:
+    - lamp
+ 
+- name: "AmazonLinux - Post WordPress Installation Cleanup"
+  file:
+    name: "{{ item }}"
+    state: absent
+  with_items:
+    - "/tmp/wordpress/"
+    - "/tmp/wordpress.zip"
+  tags:
+    - Wordpress

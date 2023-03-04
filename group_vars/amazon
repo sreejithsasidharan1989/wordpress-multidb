@@ -1,0 +1,10 @@
+---
+httpd_owner: "apache"
+httpd_group: "apache"
+httpd_port: "80"
+httpd_domain: "wordpress.backtracker.tech"
+mariadb_root_passwd: "mariadbroot123"
+mariadb_wp_user: "wp_user"
+mariadb_wp_passwd: "mypass123"
+mariadb_wp_db: "wp_blog"
+wp_url: "https://wordpress.org/wordpress-6.0.zip"

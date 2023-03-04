@@ -1,0 +1,13 @@
+---
+- name: "WordPress Installation"
+  become: true
+  hosts: 
+    - ubuntu
+    - amazon
+  tasks:
+ 
+    - include_tasks: wordpress_amazon.yml
+      when: ansible_distribution == "Amazon" and ansible_os_family == "RedHat"
+ 
+    - include_tasks: wordpress_ubuntu.yml
+      when: ansible_distribution == "Ubuntu" and ansible_os_family == "Debian"

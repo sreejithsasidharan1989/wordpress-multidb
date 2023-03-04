@@ -1,0 +1,9 @@
+---
+httpd_owner: "www-data"
+httpd_group: "www-data"
+httpd_domain: "wordpress.backtracker.tech"
+mariadb_root_passwd: "rootpass123"
+mariadb_wp_user: "wp_user"
+mariadb_wp_db: "wp_db"
+mariadb_wp_passwd: "userpass123"
+wp_url: "https://wordpress.org/wordpress-6.1.zip"
