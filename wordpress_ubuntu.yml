@@ -1,0 +1,117 @@
+---
+- name: "Ubuntu Add  PHP8.0 Repo"
+  apt_repository:
+    repo: "ppa:ondrej/php"
+    state: present
+  tags:
+    - lemp
+ 
+- name: "Ubuntu - Install Packages"
+  apt:
+    update_cache: true
+    name: 
+      - nginx
+      - php8.0-fpm
+      - php8.0-mysql
+      - php8.0-mbstring
+      - unzip
+    state: present
+  tags:
+    - lemp
+ 
+- name: "Ubuntu - Create Nginx Virtualhost from {{ httpd_domain }}.conf.j2 file"
+  template:
+    src: "./wordpress.backtracker.tech.conf.j2"
+    dest: "/etc/nginx/sites-available/{{ httpd_domain }}.conf"
+    owner: "{{ httpd_owner }}"
+    group:  "{{ httpd_group }}"
+  register: vhost_copy
+  tags:
+    - lemp
+    - nginx
+ 
+- name: "Ubuntu - Enable Nginx conf{{ httpd_domain }}.conf"
+  file:
+    src: "/etc/nginx/sites-available/{{ httpd_domain }}.conf"
+    dest: "/etc/nginx/sites-enabled/{{ httpd_domain }}.conf"
+    state: link
+  tags:
+    - lemp
+    - nginx
+ 
+- name: "Ubuntu - Creating Documentroot /var/www/{{ httpd_domain }}/"
+  file:
+    path: "/var/www/{{ httpd_domain }}/"
+    state: directory
+    owner: "{{ httpd_owner }}"
+    group: "{{ httpd_group }}"
+  tags:
+    - lemp
+    - nginx
+ 
+- name: "Ubuntu - Disable default Nginx conf"
+  file:
+    path: "/etc/nginx/sites-enabled/default"
+    state: absent
+  tags:
+    - lemp
+    - nginx
+ 
+- name: "Ubuntu - Download WordPress setup Files from {{ wp_url }}"
+  get_url:
+    url: "{{ wp_url }}"
+    dest: "/tmp/wordpress.zip"
+  tags:
+    - lemp
+    - wordpress
+ 
+- name: "Ubuntu - Extract WordPress setup files to /tmp"
+  unarchive:
+    src: "/tmp/wordpress.zip"
+    dest: "/tmp"
+    remote_src: true
+  tags:
+    - lemp
+    - wordpress
+ 
+- name: "Ubuntu - Copy WordPress Files to /var/www/{{ httpd_domain }}"
+  copy:
+    src: "/tmp/wordpress/"
+    dest: "/var/www/{{ httpd_domain }}"
+    remote_src: true
+    owner: "{{ httpd_owner }}"
+    group: "{{ httpd_group }}"
+  tags:
+    - lemp
+    - wordpress
+ 
+- name: "Ubuntu - Build WordPress wp-config.php from wp-config.php.j2"
+  template:
+    src: "./wp-config.php.j2"
+    dest: "/var/www/{{ httpd_domain }}/wp-config.php"
+    owner: "{{ httpd_owner }}"
+    group: "{{ httpd_group }}"
+  tags:
+    - lemp
+    - wordpress
+ 
+- name: "Ubuntu - Post WordPress Installation Service Restarts"
+  service:
+    name: "{{ item }}"
+    state: restarted
+    enabled: true
+  with_items:
+    - nginx
+  tags:
+    - lemp
+    - nginx
+ 
+- name: "Ubuntu - Post WordPress Installation Cleanup"
+  file:
+    name: "{{ item }}"
+    state: absent
+  with_items:
+    - "/tmp/wordpress/"
+    - "/tmp/wordpress.zip"
+  tags:
+    - Wordpress
