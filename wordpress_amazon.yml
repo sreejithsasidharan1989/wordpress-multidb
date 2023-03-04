@@ -1,8 +1,15 @@
 ---
+- name: "Enable PostgreSql"
+  shell: amazon-linux-extras enable postgresql14 -y
+
 - name: "AmazonLinux - Install Packages"
   yum:
     name: 
       - httpd
+      - postgresql-server
+      - python-psycopg2
+      - php-pgsql
+      - git
     state: present
   tags:
     - lamp
@@ -36,7 +43,58 @@
     group: "{{ httpd_group }}"
   tags:
     - lamp
- 
+
+- name: "Find out if PostgreSQL is initialized"
+  stat:
+    path: "/var/lib/pgsql/data/pg_hba.conf"
+  register: postgres_data
+
+- name: "Initialize Postgresql"
+  when: postgres_data.stat.exists == false
+  shell: "postgresql-setup initdb"
+
+- name: "Postgres - Server Restart/enable"
+  service:
+    name: postgresql
+    state: restarted
+    enabled: true
+
+- name: "Postgres - Configure {{ mariadb_wp_user }}"
+  postgresql_user:
+    name: "{{ mariadb_wp_user }}"
+    password: "{{ mariadb_wp_passwd }}"
+    state: present
+  become: yes
+  become_user: postgres
+
+- name: "Postgres - Create {{ mariadb_wp_db }}"
+  postgresql_db:
+    state: present
+    name: "{{ mariadb_wp_db }}"
+  become: yes
+  become_user: postgres
+
+- name: "Postgres - Grant Privilages to {{ mariadb_wp_user }} on DB {{ mariadb_wp_db }}"
+  postgresql_privs:
+    type: database
+    database: "{{ mariadb_wp_db }}"
+    roles: "{{ mariadb_wp_user }}"
+    grant_option: no
+    privs: all
+  become: yes
+  become_user: postgres
+
+- name: "Allow MD5 Connection"
+  postgresql_pg_hba:
+    dest: "~/data/pg_hba.conf"
+    contype: host
+    databases: all
+    users: all
+    method: md5
+    create: true
+  become: yes
+  become_user: postgres
+
 - name: "AmazonLinux - Download WordPress Setup Files from {{ wp_url }}"
   get_url:
     url: "{{ wp_url }}"
@@ -70,6 +128,25 @@
     group: "{{ httpd_group }}"
   tags:
     - wordpress
+
+- name: "Add Postgres Support for WordPress"
+  git:
+    repo: "https://github.com/kevinoid/postgresql-for-wordpress.git"
+    dest: "/var/www/html/{{ httpd_domain }}/wp-content/postgresql-for-wordpress"
+
+- name: "Copy pg4wp"
+  copy:
+    remote_src: true
+    src: "/var/www/html/{{ httpd_domain }}/wp-content/postgresql-for-wordpress/pg4wp"
+    dest: "/var/www/html/{{ httpd_domain }}/wp-content/"
+    owner: "{{ httpd_owner }}"
+    group: "{{ httpd_group }}"
+
+- name: "Copy db.php"
+  copy:
+    remote_src: true
+    src: "/var/www/html/{{ httpd_domain }}/wp-content/pg4wp/db.php"
+    dest: "/var/www/html/{{ httpd_domain }}/wp-content/"
  
 - name: "AmazonLinux - Post WordPress Installation Service Restart"
   service:
@@ -78,6 +155,8 @@
     enabled: true
   with_items:
     - httpd
+    - postgresql
+    - php-fpm
   tags:
     - lamp
  
